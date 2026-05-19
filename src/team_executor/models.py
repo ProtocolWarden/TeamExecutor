@@ -29,6 +29,15 @@ class VerifierRole:
 
 
 @dataclass
+class QuickCheck:
+    """A scripted verification command run in the working directory."""
+
+    command: str
+    expected_exit_code: int = 0
+    description: str = ""
+
+
+@dataclass
 class TeamConfig:
     team_name: str
     coordinator: Role
@@ -36,6 +45,8 @@ class TeamConfig:
     verifiers: list[VerifierRole]
     max_cycles_per_stage: int = 3
     worker_backend: Literal["claude_code", "codex_cli"] = "claude_code"
+    adaptive_advisor: bool = False
+    auto_commit: bool = False
 
     @property
     def verifier(self) -> Role:
@@ -51,6 +62,8 @@ class GoalStage:
     description: str
     acceptance_criteria: list[str]
     parallel_group: int | None = None
+    persist_changes: bool = False
+    verification: "Literal['full', 'skip'] | list[QuickCheck]" = "full"
 
 
 @dataclass

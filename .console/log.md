@@ -1,5 +1,14 @@
 # Log
 
+## 2026-05-19 — Primitives 1–4
+
+- **persist_changes** on GoalStage: parallel stages with persist_changes=True each get an isolated git worktree; changes committed in worktree then cherry-picked back into main working dir
+- **QuickCheck + verification field**: GoalStage.verification can be "full" (agent verifiers), "skip" (immediate accept), or list[QuickCheck] (scripted commands); quick_check.py runs commands with expected exit code, timeout, and file-not-found handling
+- **Adaptive advisor** (advisor.py): after each sequential stage, coordinator LLM is asked "continue / done / add_stage"; "done" stops early; "add_stage" injects a new GoalStage into the live batch list
+- **auto_commit** on TeamConfig: coordinator calls git_ops.commit_stage() after each successful sequential stage
+- **git_ops.py**: create_worktree, remove_worktree, commit_worktree, merge_worktree_into_base, commit_stage helpers
+- 108 tests passing (was 79)
+
 ## 2026-05-19 — Phase 2 primitives
 
 - **parallel_group** on GoalStage: stages with same int run concurrently via ThreadPoolExecutor; coordinator batches them
