@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from typing import Literal
+
+from core_runner.process import safe_run
 
 from team_executor.models import Role
 
@@ -33,25 +34,19 @@ def _claude_call(role: Role, prompt: str, working_dir: str) -> str:
         "--output-format", "json",
     ]
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=working_dir,
-            capture_output=True,
-            text=True,
-            timeout=role.timeout_seconds,
-        )
-        stdout = result.stdout or ""
-        try:
-            parsed = json.loads(stdout)
-            if isinstance(parsed, dict) and "result" in parsed:
-                return str(parsed["result"])
-        except (json.JSONDecodeError, KeyError):
-            pass
-        return stdout
-    except subprocess.TimeoutExpired:
-        raise RuntimeError(f"Agent call timed out after {role.timeout_seconds}s")
+        result = safe_run(cmd, cwd=working_dir, timeout_seconds=role.timeout_seconds)
     except FileNotFoundError:
         raise RuntimeError("claude binary not found in PATH")
+    if result.timed_out:
+        raise RuntimeError(f"Agent call timed out after {role.timeout_seconds}s")
+    stdout = result.stdout or ""
+    try:
+        parsed = json.loads(stdout)
+        if isinstance(parsed, dict) and "result" in parsed:
+            return str(parsed["result"])
+    except (json.JSONDecodeError, KeyError):
+        pass
+    return stdout
 
 
 def _codex_call(role: Role, prompt: str, working_dir: str) -> str:
@@ -62,15 +57,9 @@ def _codex_call(role: Role, prompt: str, working_dir: str) -> str:
         "-q", prompt,
     ]
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=working_dir,
-            capture_output=True,
-            text=True,
-            timeout=role.timeout_seconds,
-        )
-        return result.stdout or ""
-    except subprocess.TimeoutExpired:
-        raise RuntimeError(f"Agent call timed out after {role.timeout_seconds}s")
+        result = safe_run(cmd, cwd=working_dir, timeout_seconds=role.timeout_seconds)
     except FileNotFoundError:
         raise RuntimeError("codex binary not found in PATH")
+    if result.timed_out:
+        raise RuntimeError(f"Agent call timed out after {role.timeout_seconds}s")
+    return result.stdout or ""
