@@ -10,7 +10,6 @@ requires-python = ">=3.11"
 dependencies = [
   "pydantic>=2.7",
   "PyYAML>=6.0",
-  "anthropic>=0.30",
   "orjson>=3.9",
   "tiktoken>=0.7",
   "rxp @ git+https://github.com/ProtocolWarden/RxP.git",
@@ -26,6 +25,9 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"team_executor" = ["teams/*.yaml"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]

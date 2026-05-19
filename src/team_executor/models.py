@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 
 class VerdictStatus(str, Enum):
@@ -23,12 +23,26 @@ class Role:
 
 
 @dataclass
+class VerifierRole:
+    kind: Literal["tester", "reviewer"]
+    role: Role
+
+
+@dataclass
 class TeamConfig:
     team_name: str
     coordinator: Role
     workers: list[Role]
-    verifier: Role
+    verifiers: list[VerifierRole]
     max_cycles_per_stage: int = 3
+    worker_backend: Literal["claude_code", "codex_cli"] = "claude_code"
+
+    @property
+    def verifier(self) -> Role:
+        """Backwards-compat: return the first verifier's role."""
+        if not self.verifiers:
+            raise ValueError("TeamConfig has no verifiers")
+        return self.verifiers[0].role
 
 
 @dataclass
@@ -36,6 +50,7 @@ class GoalStage:
     index: int
     description: str
     acceptance_criteria: list[str]
+    parallel_group: int | None = None
 
 
 @dataclass

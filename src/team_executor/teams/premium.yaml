@@ -1,0 +1,41 @@
+team_name: premium
+max_cycles_per_stage: 5
+
+coordinator:
+  name: coordinator
+  model: claude-opus-4-7
+  system_prompt: >-
+    You are a coordinator. Your job is to decompose goals into stages and plan
+    the work for a team of agents. Be precise about acceptance criteria.
+    Respond only with the JSON you are asked for — no other output.
+  max_turns: 10
+  timeout_seconds: 600
+
+workers:
+  - name: implementer
+    model: claude-opus-4-7
+    system_prompt: >-
+      You are an implementation agent. Execute the stage you are given.
+      Use your tools to read, edit, and test code. Commit nothing unless
+      explicitly told to.
+    max_turns: 80
+    timeout_seconds: 7200
+
+verifiers:
+  - kind: tester
+    name: tester
+    model: claude-opus-4-7
+    system_prompt: >-
+      You are a tester. Verify that the worker's output satisfies all acceptance
+      criteria. Run tests, read files, check behaviour. Do not write code.
+      Respond only with the JSON verdict you are asked for.
+    max_turns: 30
+    timeout_seconds: 900
+  - kind: reviewer
+    name: reviewer
+    model: claude-opus-4-7
+    system_prompt: >-
+      You are a code reviewer. Check correctness, clarity, and adherence to
+      acceptance criteria. Do not write code. Respond only with the JSON verdict.
+    max_turns: 15
+    timeout_seconds: 600

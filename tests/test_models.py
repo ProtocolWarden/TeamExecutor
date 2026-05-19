@@ -9,9 +9,19 @@ from team_executor.models import (
     GoalStage,
     Role,
     StageResult,
+    TeamConfig,
     TeamSession,
+    VerifierRole,
     VerdictStatus,
 )
+
+
+def _role(name: str = "worker") -> Role:
+    return Role(name=name, model="claude-sonnet-4-6", system_prompt="You work.")
+
+
+def _verifier_role(kind: str = "reviewer") -> VerifierRole:
+    return VerifierRole(kind=kind, role=_role(kind))
 
 
 class TestTeamSession:
@@ -44,9 +54,74 @@ class TestGoalStage:
         assert stage.description == "Build X"
         assert stage.acceptance_criteria == ["X exists"]
 
-    def test_empty_criteria(self):
-        stage = GoalStage(index=0, description="Do nothing", acceptance_criteria=[])
-        assert stage.acceptance_criteria == []
+    def test_parallel_group_defaults_to_none(self):
+        stage = GoalStage(index=0, description="Do it", acceptance_criteria=[])
+        assert stage.parallel_group is None
+
+    def test_parallel_group_set(self):
+        stage = GoalStage(index=1, description="A", acceptance_criteria=[], parallel_group=2)
+        assert stage.parallel_group == 2
+
+
+class TestVerifierRole:
+    def test_tester_kind(self):
+        vr = _verifier_role("tester")
+        assert vr.kind == "tester"
+        assert vr.role.name == "tester"
+
+    def test_reviewer_kind(self):
+        vr = _verifier_role("reviewer")
+        assert vr.kind == "reviewer"
+
+
+class TestTeamConfig:
+    def test_verifiers_list(self):
+        config = TeamConfig(
+            team_name="t",
+            coordinator=_role("coord"),
+            workers=[_role("w")],
+            verifiers=[_verifier_role("tester"), _verifier_role("reviewer")],
+        )
+        assert len(config.verifiers) == 2
+        assert config.verifiers[0].kind == "tester"
+
+    def test_verifier_property_returns_first(self):
+        config = TeamConfig(
+            team_name="t",
+            coordinator=_role("coord"),
+            workers=[_role("w")],
+            verifiers=[_verifier_role("tester")],
+        )
+        assert config.verifier.name == "tester"
+
+    def test_verifier_property_raises_when_empty(self):
+        config = TeamConfig(
+            team_name="t",
+            coordinator=_role("coord"),
+            workers=[_role("w")],
+            verifiers=[],
+        )
+        with pytest.raises(ValueError):
+            _ = config.verifier
+
+    def test_worker_backend_default(self):
+        config = TeamConfig(
+            team_name="t",
+            coordinator=_role("coord"),
+            workers=[_role("w")],
+            verifiers=[_verifier_role()],
+        )
+        assert config.worker_backend == "claude_code"
+
+    def test_worker_backend_codex(self):
+        config = TeamConfig(
+            team_name="t",
+            coordinator=_role("coord"),
+            workers=[_role("w")],
+            verifiers=[_verifier_role()],
+            worker_backend="codex_cli",
+        )
+        assert config.worker_backend == "codex_cli"
 
 
 class TestCycleVerdict:
@@ -63,7 +138,7 @@ class TestCycleVerdict:
 
 class TestRole:
     def test_defaults(self):
-        role = Role(name="worker", model="claude-sonnet-4-6", system_prompt="You are a worker.")
+        role = Role(name="worker", model="claude-sonnet-4-6", system_prompt="You work.")
         assert role.max_turns == 10
         assert role.timeout_seconds == 3600
         assert role.fallback_model is None

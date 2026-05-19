@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+from typing import Literal
 
-from team_executor.models import CycleVerdict, GoalStage, Role, VerdictStatus
+from team_executor.agent_call import call_agent
+from team_executor.models import CycleVerdict, GoalStage, VerifierRole, VerdictStatus
 
 _VERIFY_PROMPT = """\
 Stage description: {description}
@@ -16,17 +18,18 @@ Worker output:
 {output}
 
 Evaluate whether the output satisfies all acceptance criteria.
-Respond with JSON only — no markdown, no explanation:
+Respond with JSON only — no markdown, no tool use, no explanation outside the JSON:
 {{"status": "accept" or "reject", "reason": "brief explanation"}}
 """
 
 
-def verify_stage(
+def _call_verifier(
     stage: GoalStage,
     output: str,
-    verifier_role: Role,
-    anthropic_client,
+    vr: VerifierRole,
+    working_dir: str,
     round_num: int,
+    backend: Literal["claude_code", "codex_cli"] = "claude_code",
 ) -> CycleVerdict:
     criteria_text = "\n".join(f"- {c}" for c in stage.acceptance_criteria) or "(none specified)"
     prompt = _VERIFY_PROMPT.format(
@@ -34,15 +37,8 @@ def verify_stage(
         criteria=criteria_text,
         output=output,
     )
-    response = anthropic_client.messages.create(
-        model=verifier_role.model,
-        max_tokens=512,
-        system=verifier_role.system_prompt,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    raw_text = response.content[0].text.strip()
+    raw_text = call_agent(vr.role, prompt, working_dir, backend=backend).strip()
 
-    # Strip markdown code fences if present
     if raw_text.startswith("```"):
         lines = raw_text.splitlines()
         raw_text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
@@ -53,8 +49,31 @@ def verify_stage(
         status = VerdictStatus.ACCEPT if status_str == "accept" else VerdictStatus.REJECT
         reason = parsed.get("reason", "")
     except (json.JSONDecodeError, AttributeError):
-        # Safe default: malformed response → reject so the stage is retried
         status = VerdictStatus.REJECT
-        reason = f"Verifier returned malformed JSON: {raw_text[:200]}"
+        reason = f"Verifier ({vr.kind}) returned malformed response: {raw_text[:200]}"
 
     return CycleVerdict(status=status, reason=reason, round=round_num)
+
+
+def verify_stage(
+    stage: GoalStage,
+    output: str,
+    verifiers: list[VerifierRole],
+    working_dir: str,
+    round_num: int,
+    backend: Literal["claude_code", "codex_cli"] = "claude_code",
+) -> CycleVerdict:
+    """Run all verifiers sequentially. First rejection short-circuits.
+
+    Testers run before reviewers (list order is authoritative).
+    Returns the first rejection, or the last accept if all pass.
+    """
+    last_verdict: CycleVerdict | None = None
+    for vr in verifiers:
+        verdict = _call_verifier(stage, output, vr, working_dir, round_num, backend)
+        last_verdict = verdict
+        if verdict.status == VerdictStatus.REJECT:
+            return verdict
+    if last_verdict is None:
+        return CycleVerdict(status=VerdictStatus.ACCEPT, reason="no verifiers configured", round=round_num)
+    return last_verdict

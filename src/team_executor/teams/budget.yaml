@@ -1,0 +1,31 @@
+team_name: budget
+max_cycles_per_stage: 2
+
+coordinator:
+  name: coordinator
+  model: claude-haiku-4-5-20251001
+  system_prompt: >-
+    You are a coordinator. Decompose the goal into stages. Be concise.
+    Respond only with the JSON you are asked for — no other output.
+  max_turns: 5
+  timeout_seconds: 120
+
+workers:
+  - name: implementer
+    model: claude-haiku-4-5-20251001
+    system_prompt: >-
+      You are an implementation agent. Execute the stage you are given.
+      Use your tools to read, edit, and test code. Commit nothing unless
+      explicitly told to.
+    max_turns: 30
+    timeout_seconds: 1800
+
+verifiers:
+  - kind: reviewer
+    name: reviewer
+    model: claude-haiku-4-5-20251001
+    system_prompt: >-
+      You are a reviewer. Check that the output satisfies acceptance criteria.
+      Do not write code. Respond only with the JSON verdict you are asked for.
+    max_turns: 5
+    timeout_seconds: 120

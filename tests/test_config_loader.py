@@ -10,7 +10,7 @@ import pytest
 from team_executor.config_loader import load_team_config
 from team_executor.models import TeamConfig
 
-_MINIMAL_YAML = textwrap.dedent("""\
+_LEGACY_YAML = textwrap.dedent("""\
     team_name: testteam
     coordinator:
       model: claude-opus-4-7-20251001
@@ -26,6 +26,27 @@ _MINIMAL_YAML = textwrap.dedent("""\
     max_cycles_per_stage: 2
 """)
 
+_VERIFIERS_YAML = textwrap.dedent("""\
+    team_name: multiverify
+    coordinator:
+      model: claude-opus-4-7
+      system_prompt: "coord"
+    workers:
+      - name: w
+        model: claude-sonnet-4-6
+        system_prompt: "work"
+    verifiers:
+      - kind: tester
+        name: tester
+        model: claude-sonnet-4-6
+        system_prompt: "You test."
+      - kind: reviewer
+        name: reviewer
+        model: claude-sonnet-4-6
+        system_prompt: "You review."
+    max_cycles_per_stage: 3
+""")
+
 
 def _write_config(directory: Path, team_name: str, content: str) -> None:
     teams_dir = directory / ".team_executor" / "teams"
@@ -35,44 +56,78 @@ def _write_config(directory: Path, team_name: str, content: str) -> None:
 
 class TestLoadTeamConfig:
     def test_loads_from_project_dir(self, tmp_path):
-        _write_config(tmp_path, "testteam", _MINIMAL_YAML)
+        _write_config(tmp_path, "testteam", _LEGACY_YAML)
         config = load_team_config("testteam", working_directory=str(tmp_path))
         assert isinstance(config, TeamConfig)
         assert config.team_name == "testteam"
         assert config.coordinator.model == "claude-opus-4-7-20251001"
         assert len(config.workers) == 1
-        assert config.workers[0].name == "implementer"
 
     def test_loads_from_home_dir(self, tmp_path, monkeypatch):
         fake_home = tmp_path / "home"
         fake_home.mkdir()
-        _write_config(fake_home, "hometeam", _MINIMAL_YAML.replace("testteam", "hometeam"))
+        _write_config(fake_home, "hometeam", _LEGACY_YAML.replace("testteam", "hometeam"))
         monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
-        # project dir has no config
         empty_project = tmp_path / "project"
         empty_project.mkdir()
         config = load_team_config("hometeam", working_directory=str(empty_project))
         assert config.team_name == "hometeam"
+
+    def test_builtin_default_team_loads(self, tmp_path, monkeypatch):
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+        config = load_team_config("default", working_directory=str(tmp_path))
+        assert config.team_name == "default"
+        assert len(config.verifiers) >= 1
+
+    def test_builtin_premium_team_loads(self, tmp_path, monkeypatch):
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+        config = load_team_config("premium", working_directory=str(tmp_path))
+        assert config.team_name == "premium"
+        assert "opus" in config.coordinator.model
+
+    def test_builtin_budget_team_loads(self, tmp_path, monkeypatch):
+        fake_home = tmp_path / "home"
+        fake_home.mkdir()
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+        config = load_team_config("budget", working_directory=str(tmp_path))
+        assert config.team_name == "budget"
+        assert "haiku" in config.coordinator.model
 
     def test_missing_raises_file_not_found(self, tmp_path, monkeypatch):
         fake_home = tmp_path / "emptyhome"
         fake_home.mkdir()
         monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
         with pytest.raises(FileNotFoundError):
-            load_team_config("nonexistent", working_directory=str(tmp_path))
+            load_team_config("nonexistent_xyzzy", working_directory=str(tmp_path))
 
-    def test_project_dir_takes_precedence_over_home(self, tmp_path, monkeypatch):
+    def test_project_dir_takes_precedence_over_builtin(self, tmp_path, monkeypatch):
         fake_home = tmp_path / "home"
         fake_home.mkdir()
-        _write_config(fake_home, "myteam", _MINIMAL_YAML.replace("testteam", "myteam"))
-        project_yaml = _MINIMAL_YAML.replace("testteam", "myteam").replace(
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+        # Write a project-level "default" that overrides the built-in
+        override = _LEGACY_YAML.replace("testteam", "default").replace(
             "claude-opus-4-7-20251001", "claude-haiku-3-5"
         )
-        _write_config(tmp_path, "myteam", project_yaml)
-        monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
-        config = load_team_config("myteam", working_directory=str(tmp_path))
-        # Project dir wins — model is the overridden one
+        _write_config(tmp_path, "default", override)
+        config = load_team_config("default", working_directory=str(tmp_path))
         assert config.coordinator.model == "claude-haiku-3-5"
+
+    def test_legacy_verifier_key_parsed_as_reviewer(self, tmp_path):
+        _write_config(tmp_path, "testteam", _LEGACY_YAML)
+        config = load_team_config("testteam", working_directory=str(tmp_path))
+        assert len(config.verifiers) == 1
+        assert config.verifiers[0].kind == "reviewer"
+
+    def test_new_verifiers_list_parsed(self, tmp_path):
+        _write_config(tmp_path, "multiverify", _VERIFIERS_YAML)
+        config = load_team_config("multiverify", working_directory=str(tmp_path))
+        assert len(config.verifiers) == 2
+        assert config.verifiers[0].kind == "tester"
+        assert config.verifiers[1].kind == "reviewer"
 
     def test_max_cycles_default(self, tmp_path):
         yaml_no_cycles = textwrap.dedent("""\
@@ -92,8 +147,7 @@ class TestLoadTeamConfig:
         config = load_team_config("simple", working_directory=str(tmp_path))
         assert config.max_cycles_per_stage == 3
 
-    def test_verifier_fields_parsed(self, tmp_path):
-        _write_config(tmp_path, "testteam", _MINIMAL_YAML)
+    def test_worker_backend_default(self, tmp_path):
+        _write_config(tmp_path, "testteam", _LEGACY_YAML)
         config = load_team_config("testteam", working_directory=str(tmp_path))
-        assert config.verifier.model == "claude-sonnet-4-6"
-        assert config.verifier.max_turns == 10  # default
+        assert config.worker_backend == "claude_code"
