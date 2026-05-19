@@ -1,5 +1,17 @@
 # Log
 
+## 2026-05-19 — Phase 2 primitives
+
+- **parallel_group** on GoalStage: stages with same int run concurrently via ThreadPoolExecutor; coordinator batches them
+- **checkpoint/resume**: checkpoint.py serialises StageResult list; coordinator writes after each batch, deletes on clean finish; invocation_id from RxP flows as run_id
+- **multi-verifier**: verifiers list replaces single verifier; tester before reviewer; first reject short-circuits; legacy verifier: key wrapped automatically
+- **codex_cli worker backend**: agent_call.py wraps both claude and codex CLI; all roles (coordinator, workers, verifiers, summarizer) route through it; SB injects via RxP metadata
+- **all-subprocess coordinator**: removed anthropic_client from all roles; no direct Anthropic API calls
+- **built-in teams**: default/premium/budget YAML shipped in teams/; config_loader priority: project → home → built-in
+- **model flag**: --model {role.model} passed to claude CLI in all subprocess calls
+- anthropic dep removed from pyproject.toml; teams/*.yaml in package-data
+- 79 tests passing (was 45)
+
 ## 2026-05-18 — Initial scaffold
 
 - Built complete Phase 2 package from spec

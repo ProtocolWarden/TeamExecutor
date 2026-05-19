@@ -3,25 +3,31 @@
 from __future__ import annotations
 
 import json
+from typing import Literal
 
+from team_executor.agent_call import call_agent
 from team_executor.models import GoalStage, Role
 
 _PLAN_PROMPT = """\
-You are a coordinator. Decompose the following goal into sequential stages.
+You are a coordinator. Decompose the following goal into stages for a team of agents.
 
 Goal:
 {goal_text}
 
-Respond with a JSON array only — no markdown, no explanation. Each element must have:
+Respond with a JSON array only — no markdown, no preamble, no tool use. Each element must have:
   "description": string — what to accomplish in this stage
   "acceptance_criteria": array of strings — measurable conditions for success
+  "parallel_group": integer or null — stages sharing the same integer run concurrently; null means sequential
+
+Assign a parallel_group when stages are genuinely independent and can run simultaneously.
+Sequential dependencies must be separate groups or null.
 
 Example:
 [
-  {{
-    "description": "Set up project structure",
-    "acceptance_criteria": ["Directory layout created", "pyproject.toml present"]
-  }}
+  {{"description": "Set up project structure", "acceptance_criteria": ["pyproject.toml present"], "parallel_group": null}},
+  {{"description": "Implement feature A", "acceptance_criteria": ["tests pass"], "parallel_group": 1}},
+  {{"description": "Implement feature B", "acceptance_criteria": ["tests pass"], "parallel_group": 1}},
+  {{"description": "Integration test", "acceptance_criteria": ["all tests green"], "parallel_group": null}}
 ]
 """
 
@@ -29,18 +35,13 @@ Example:
 def plan_stages(
     goal_text: str,
     coordinator: Role,
-    anthropic_client,
+    working_dir: str,
+    backend: Literal["claude_code", "codex_cli"] = "claude_code",
 ) -> list[GoalStage]:
     prompt = _PLAN_PROMPT.format(goal_text=goal_text)
-    response = anthropic_client.messages.create(
-        model=coordinator.model,
-        max_tokens=4096,
-        system=coordinator.system_prompt,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    raw_text = response.content[0].text.strip()
+    raw_text = call_agent(coordinator, prompt, working_dir, backend=backend)
+    raw_text = raw_text.strip()
 
-    # Strip markdown code fences if present
     if raw_text.startswith("```"):
         lines = raw_text.splitlines()
         raw_text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
@@ -51,6 +52,7 @@ def plan_stages(
             index=i,
             description=item["description"],
             acceptance_criteria=item.get("acceptance_criteria", []),
+            parallel_group=item.get("parallel_group"),
         )
         for i, item in enumerate(stages_data)
     ]

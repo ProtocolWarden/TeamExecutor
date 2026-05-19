@@ -2,12 +2,13 @@
 # Copyright (C) 2026 ProtocolWarden
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import yaml
 
-from team_executor.models import Role, TeamConfig
+from team_executor.models import Role, TeamConfig, VerifierRole
+
+_BUILTIN_TEAMS_DIR = Path(__file__).parent / "teams"
 
 
 def _role_from_dict(data: dict, name_fallback: str) -> Role:
@@ -21,23 +22,41 @@ def _role_from_dict(data: dict, name_fallback: str) -> Role:
     )
 
 
+def _verifiers_from_raw(raw: dict) -> list[VerifierRole]:
+    """Parse `verifiers:` list (new) or single `verifier:` key (legacy)."""
+    if "verifiers" in raw:
+        result = []
+        for item in raw["verifiers"]:
+            kind = item.get("kind", "reviewer")
+            role = _role_from_dict(item, kind)
+            result.append(VerifierRole(kind=kind, role=role))
+        return result
+    if "verifier" in raw:
+        role = _role_from_dict(raw["verifier"], "verifier")
+        return [VerifierRole(kind="reviewer", role=role)]
+    return []
+
+
 def _parse_team_config(raw: dict) -> TeamConfig:
     coordinator = _role_from_dict(raw["coordinator"], "coordinator")
     workers = [_role_from_dict(w, w.get("name", f"worker_{i}")) for i, w in enumerate(raw["workers"])]
-    verifier = _role_from_dict(raw["verifier"], "verifier")
+    verifiers = _verifiers_from_raw(raw)
     return TeamConfig(
         team_name=raw["team_name"],
         coordinator=coordinator,
         workers=workers,
-        verifier=verifier,
+        verifiers=verifiers,
         max_cycles_per_stage=raw.get("max_cycles_per_stage", 3),
+        worker_backend=raw.get("worker_backend", "claude_code"),
     )
 
 
 def load_team_config(team_name: str, working_directory: str = ".") -> TeamConfig:
+    """Load team config. Priority: project dir → home dir → built-in."""
     candidates = [
         Path(working_directory) / ".team_executor" / "teams" / f"{team_name}.yaml",
         Path.home() / ".team_executor" / "teams" / f"{team_name}.yaml",
+        _BUILTIN_TEAMS_DIR / f"{team_name}.yaml",
     ]
     for path in candidates:
         if path.exists():

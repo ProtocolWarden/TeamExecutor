@@ -3,66 +3,93 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 
-from team_executor.models import GoalStage, Role, VerdictStatus
+from team_executor.models import GoalStage, Role, VerifierRole, VerdictStatus
 from team_executor.verifier import verify_stage
 
 
-def _make_role() -> Role:
-    return Role(
-        name="verifier",
-        model="claude-sonnet-4-6",
-        system_prompt="You verify. Respond with JSON.",
-    )
+def _stage() -> GoalStage:
+    return GoalStage(index=0, description="Do X", acceptance_criteria=["X done", "tests pass"])
 
 
-def _make_stage() -> GoalStage:
-    return GoalStage(index=0, description="Do X", acceptance_criteria=["X done"])
+def _vr(kind: str = "reviewer", name: str = "reviewer") -> VerifierRole:
+    return VerifierRole(kind=kind, role=Role(name=name, model="claude-sonnet-4-6", system_prompt="You verify."))
 
 
-def _make_client(response_text: str) -> MagicMock:
-    client = MagicMock()
-    msg = MagicMock()
-    msg.content = [MagicMock(text=response_text)]
-    client.messages.create.return_value = msg
-    return client
+def _accept_json() -> str:
+    return json.dumps({"status": "accept", "reason": "looks good"})
+
+
+def _reject_json(reason: str = "not done") -> str:
+    return json.dumps({"status": "reject", "reason": reason})
 
 
 class TestVerifyStage:
-    def test_accept_verdict(self):
-        payload = json.dumps({"status": "accept", "reason": "all criteria met"})
-        verdict = verify_stage(_make_stage(), "output text", _make_role(), _make_client(payload), round_num=0)
+    def test_single_verifier_accept(self):
+        with patch("team_executor.verifier.call_agent", return_value=_accept_json()):
+            verdict = verify_stage(_stage(), "output", [_vr()], "/tmp", round_num=0)
         assert verdict.status == VerdictStatus.ACCEPT
-        assert verdict.reason == "all criteria met"
-        assert verdict.round == 0
+        assert verdict.reason == "looks good"
 
-    def test_reject_verdict(self):
-        payload = json.dumps({"status": "reject", "reason": "X not done"})
-        verdict = verify_stage(_make_stage(), "output text", _make_role(), _make_client(payload), round_num=1)
+    def test_single_verifier_reject(self):
+        with patch("team_executor.verifier.call_agent", return_value=_reject_json("missing tests")):
+            verdict = verify_stage(_stage(), "output", [_vr()], "/tmp", round_num=1)
         assert verdict.status == VerdictStatus.REJECT
-        assert verdict.reason == "X not done"
+        assert verdict.reason == "missing tests"
         assert verdict.round == 1
 
-    def test_malformed_json_falls_back_to_reject(self):
-        verdict = verify_stage(_make_stage(), "output", _make_role(), _make_client("not json at all"), round_num=0)
+    def test_two_verifiers_both_accept(self):
+        with patch("team_executor.verifier.call_agent", return_value=_accept_json()):
+            verdict = verify_stage(_stage(), "output", [_vr("tester"), _vr("reviewer")], "/tmp", round_num=0)
+        assert verdict.status == VerdictStatus.ACCEPT
+
+    def test_tester_rejects_short_circuits_reviewer(self):
+        call_count = 0
+
+        def tracking_agent(role, prompt, working_dir, backend="claude_code"):
+            nonlocal call_count
+            call_count += 1
+            return _reject_json("test failed") if call_count == 1 else _accept_json()
+
+        with patch("team_executor.verifier.call_agent", side_effect=tracking_agent):
+            verdict = verify_stage(_stage(), "output", [_vr("tester"), _vr("reviewer")], "/tmp", round_num=0)
+
         assert verdict.status == VerdictStatus.REJECT
-        assert "malformed JSON" in verdict.reason
+        assert call_count == 1
 
-    def test_round_number_tracked(self):
-        payload = json.dumps({"status": "accept", "reason": "ok"})
-        for round_num in [0, 2, 5]:
-            verdict = verify_stage(_make_stage(), "out", _make_role(), _make_client(payload), round_num=round_num)
-            assert verdict.round == round_num
+    def test_tester_accepts_reviewer_rejects(self):
+        responses = iter([_accept_json(), _reject_json("style issues")])
+        with patch("team_executor.verifier.call_agent", side_effect=lambda *a, **kw: next(responses)):
+            verdict = verify_stage(_stage(), "output", [_vr("tester"), _vr("reviewer")], "/tmp", round_num=0)
+        assert verdict.status == VerdictStatus.REJECT
+        assert "style issues" in verdict.reason
 
-    def test_strips_markdown_fences(self):
-        payload = "```json\n" + json.dumps({"status": "accept", "reason": "fine"}) + "\n```"
-        verdict = verify_stage(_make_stage(), "out", _make_role(), _make_client(payload), round_num=0)
+    def test_empty_verifiers_auto_accepts(self):
+        verdict = verify_stage(_stage(), "output", [], "/tmp", round_num=0)
+        assert verdict.status == VerdictStatus.ACCEPT
+        assert "no verifiers" in verdict.reason
+
+    def test_malformed_json_returns_reject(self):
+        with patch("team_executor.verifier.call_agent", return_value="not json at all"):
+            verdict = verify_stage(_stage(), "output", [_vr()], "/tmp", round_num=0)
+        assert verdict.status == VerdictStatus.REJECT
+
+    def test_markdown_fenced_json_is_parsed(self):
+        fenced = "```json\n" + _accept_json() + "\n```"
+        with patch("team_executor.verifier.call_agent", return_value=fenced):
+            verdict = verify_stage(_stage(), "output", [_vr()], "/tmp", round_num=0)
         assert verdict.status == VerdictStatus.ACCEPT
 
     def test_unknown_status_defaults_to_reject(self):
-        payload = json.dumps({"status": "maybe", "reason": "uncertain"})
-        verdict = verify_stage(_make_stage(), "out", _make_role(), _make_client(payload), round_num=0)
+        with patch("team_executor.verifier.call_agent", return_value=json.dumps({"status": "maybe", "reason": "uncertain"})):
+            verdict = verify_stage(_stage(), "output", [_vr()], "/tmp", round_num=0)
         assert verdict.status == VerdictStatus.REJECT
+
+    def test_round_number_tracked(self):
+        with patch("team_executor.verifier.call_agent", return_value=_accept_json()):
+            for round_num in [0, 2, 5]:
+                verdict = verify_stage(_stage(), "out", [_vr()], "/tmp", round_num=round_num)
+                assert verdict.round == round_num

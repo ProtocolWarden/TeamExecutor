@@ -2,11 +2,9 @@
 # Copyright (C) 2026 ProtocolWarden
 from __future__ import annotations
 
-import os
 import uuid
 from datetime import datetime, timezone
-
-import anthropic
+from typing import Literal
 
 from team_executor.config_loader import load_team_config
 from team_executor.coordinator import TeamCoordinator
@@ -22,25 +20,31 @@ class TeamExecutorRunner:
         self,
         team_name: str = "default",
         working_dir: str = ".",
-        api_key: str | None = None,
+        worker_backend: Literal["claude_code", "codex_cli"] = "claude_code",
     ) -> None:
         self._team_name = team_name
         self._working_dir = working_dir
-        self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+        self._worker_backend = worker_backend
 
-    def run(self, goal_text: str):
-        """Main entry point. Returns RxP RuntimeResult."""
-        # Import here so tests can mock rxp without installing it
+    def run(self, goal_text: str, invocation_id: str | None = None):
+        """Main entry point. Returns RxP RuntimeResult.
+
+        invocation_id: forwarded from the RxP RuntimeInvocation so checkpoint files
+        are named consistently and resumable runs can be correlated by OC.
+        """
         from rxp.contracts.runtime_result import RuntimeResult  # type: ignore[import]
 
-        invocation_id = str(uuid.uuid4())
+        run_id = invocation_id or str(uuid.uuid4())
         started_at = _utcnow()
 
         try:
             config = load_team_config(self._team_name, self._working_dir)
-            client = anthropic.Anthropic(api_key=self._api_key)
-            coordinator = TeamCoordinator(config, client, self._working_dir)
-            stage_results = coordinator.run(goal_text)
+            # worker_backend from caller overrides team config default
+            if self._worker_backend != "claude_code":
+                config.worker_backend = self._worker_backend
+
+            coordinator = TeamCoordinator(config, self._working_dir)
+            stage_results = coordinator.run(goal_text, run_id=run_id)
             evidence = aggregate_evidence(stage_results)
             finished_at = _utcnow()
 
@@ -52,7 +56,7 @@ class TeamExecutorRunner:
             )
 
             return RuntimeResult(
-                invocation_id=invocation_id,
+                invocation_id=run_id,
                 runtime_name="team_executor",
                 runtime_kind="subprocess",
                 status=status,
@@ -67,7 +71,7 @@ class TeamExecutorRunner:
             from rxp.contracts.runtime_result import RuntimeResult  # type: ignore[import]
 
             return RuntimeResult(
-                invocation_id=invocation_id,
+                invocation_id=run_id,
                 runtime_name="team_executor",
                 runtime_kind="subprocess",
                 status="failed",
