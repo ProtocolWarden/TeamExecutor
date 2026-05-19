@@ -6,7 +6,8 @@ import json
 from typing import Literal
 
 from team_executor.agent_call import call_agent
-from team_executor.models import CycleVerdict, GoalStage, VerifierRole, VerdictStatus
+from team_executor.models import CycleVerdict, GoalStage, QuickCheck, VerifierRole, VerdictStatus
+from team_executor.quick_check import run_quick_checks
 
 _VERIFY_PROMPT = """\
 Stage description: {description}
@@ -63,11 +64,20 @@ def verify_stage(
     round_num: int,
     backend: Literal["claude_code", "codex_cli"] = "claude_code",
 ) -> CycleVerdict:
-    """Run all verifiers sequentially. First rejection short-circuits.
+    """Run verification for a stage.
 
-    Testers run before reviewers (list order is authoritative).
-    Returns the first rejection, or the last accept if all pass.
+    Fast-paths:
+    - stage.verification == "skip": immediately accept (no agent or command invoked)
+    - stage.verification is list[QuickCheck]: run scripted commands only
+    - stage.verification == "full" (default): run all configured VerifierRole agents
     """
+    if stage.verification == "skip":
+        return CycleVerdict(status=VerdictStatus.ACCEPT, reason="verification skipped", round=round_num)
+
+    if isinstance(stage.verification, list):
+        return run_quick_checks(stage.verification, stage, working_dir, round_num)
+
+    # Full agent-based verification
     last_verdict: CycleVerdict | None = None
     for vr in verifiers:
         verdict = _call_verifier(stage, output, vr, working_dir, round_num, backend)
