@@ -20,4 +20,4 @@
 
 - [ ] Integration tests (requires Anthropic API key)
 - [ ] CxRP adapter wiring in OC
-- [ ] DagExecutor (Phase 3)
+- [ ] DAGExecutor (Phase 3)
