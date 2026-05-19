@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 # core_runner lives as a sibling repo; add its src/ to path so tests run
 # without installing the package
-_core_runner_src = Path(__file__).parent.parent.parent / "ExecutorRuntime" / "src"
+_core_runner_src = Path(__file__).parent.parent.parent / "CoreRunner" / "src"
 if str(_core_runner_src) not in sys.path:
     sys.path.insert(0, str(_core_runner_src))
 
