@@ -1,5 +1,13 @@
 # Log
 
+## 2026-05-19 — ADR 0006 Phase 2: wire safe_run() in agent_call.py
+
+- Replaced subprocess.run() in _claude_call() and _codex_call() with core_runner.process.safe_run().
+- Removed subprocess import; removed TimeoutExpired catch (safe_run returns timed_out=True instead).
+- Kept FileNotFoundError handling for missing binary (safe_run lets this propagate from Popen).
+- Added core-runner dep to pyproject.toml; conftest.py adds ExecutorRuntime/src to sys.path.
+- 108 tests pass.
+
 ## 2026-05-19 — Primitives 1–4
 
 - **persist_changes** on GoalStage: parallel stages with persist_changes=True each get an isolated git worktree; changes committed in worktree then cherry-picked back into main working dir

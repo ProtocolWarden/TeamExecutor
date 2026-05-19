@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock
+
+# core_runner lives as a sibling repo; add its src/ to path so tests run
+# without installing the package
+_core_runner_src = Path(__file__).parent.parent.parent / "ExecutorRuntime" / "src"
+if str(_core_runner_src) not in sys.path:
+    sys.path.insert(0, str(_core_runner_src))
 
 # Provide stub modules for packages that aren't installed in the test environment
 _rxp_stub = MagicMock()

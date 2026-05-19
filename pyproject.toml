@@ -14,6 +14,7 @@ dependencies = [
   "tiktoken>=0.7",
   "rxp @ git+https://github.com/ProtocolWarden/RxP.git",
   "cxrp @ git+https://github.com/ProtocolWarden/CxRP.git@v0.3.0",
+  "core-runner @ git+https://github.com/ProtocolWarden/CoreRunner.git",
 ]
 
 [project.optional-dependencies]
