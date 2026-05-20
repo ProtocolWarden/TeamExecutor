@@ -40,9 +40,19 @@ def _claude_call(role: Role, prompt: str, working_dir: str) -> str:
     if result.timed_out:
         raise RuntimeError(f"Agent call timed out after {role.timeout_seconds}s")
     stdout = result.stdout or ""
+    if not stdout:
+        stderr = (result.stderr or "").strip()
+        raise RuntimeError(
+            f"claude exited {result.returncode} with no stdout"
+            + (f"; stderr: {stderr[:400]}" if stderr else "")
+        )
     try:
         parsed = json.loads(stdout)
         if isinstance(parsed, dict) and "result" in parsed:
+            if parsed.get("is_error"):
+                raise RuntimeError(
+                    f"claude returned is_error=true: {str(parsed['result'])[:400]}"
+                )
             return str(parsed["result"])
     except (json.JSONDecodeError, KeyError):
         pass
