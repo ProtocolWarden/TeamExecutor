@@ -46,7 +46,12 @@ def plan_stages(
         lines = raw_text.splitlines()
         raw_text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
 
-    stages_data = json.loads(raw_text)
+    try:
+        stages_data = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            f"Stage planner received non-JSON from agent (session limit or error): {raw_text[:300]}"
+        ) from exc
     return [
         GoalStage(
             index=i,
