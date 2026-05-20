@@ -29,9 +29,9 @@ def _claude_call(role: Role, prompt: str, working_dir: str) -> str:
     cmd = [
         "claude",
         "--model", role.model,
-        "--message", prompt,
-        "--no-auto-commits",
+        "-p",
         "--output-format", "json",
+        prompt,
     ]
     try:
         result = safe_run(cmd, cwd=working_dir, timeout_seconds=role.timeout_seconds)

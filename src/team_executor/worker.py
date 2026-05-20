@@ -48,9 +48,9 @@ def _run_claude_code(role: Role, message: str, working_dir: str) -> tuple[bool, 
     cmd = [
         "claude",
         "--model", role.model,
-        "--message", message,
-        "--no-auto-commits",
+        "-p",
         "--output-format", "json",
+        message,
     ]
     try:
         result = subprocess.run(
