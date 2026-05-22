@@ -9,3 +9,11 @@ build/
 .pytest_cache/
 .ruff_cache/
 .console/.context
+
+# CLP runtime state
+.context/active/
+.context/archive/
+.context/capsules/
+.context/checkpoints/
+.context/handoffs/
+.context/leases/
