@@ -1,6 +1,6 @@
 # TeamExecutor
 
-Team topology executor for the OperationsCenter owned execution topology layer (Phase 2 of kodo replacement).
+Team topology executor for the OperationsCenter owned execution topology layer.
 
 Implements a coordinator → workers → verifier loop:
 - **Coordinator**: Anthropic API call that breaks the goal into stages
