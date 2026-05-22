@@ -22,7 +22,7 @@ Do not edit `.console/.context` directly — it is regenerated at each launch.
 
 ## Cognition Lifecycle
 
-Uses [ContextLifecycleProtocol](https://github.com/ProtocolWarden/ContextLifecycleProtocol) for bounded, resumable agent sessions.
+Uses [ContextLifecycle](https://github.com/ProtocolWarden/ContextLifecycle) for bounded, resumable agent sessions.
 
 | Surface       | Purpose                                                      |
 |---------------|--------------------------------------------------------------|
