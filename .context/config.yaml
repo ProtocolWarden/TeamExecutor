@@ -1,0 +1,28 @@
+# TeamExecutor — ContextLifecycleProtocol config
+clp_version: "0.1"
+repo: "TeamExecutor"
+
+guard:
+  require_capsule: false
+  enforce_lease: true
+  capsule_path: ".context/active/"
+  checkpoint_path: ".context/checkpoints/"
+  handoff_path: ".context/handoffs/"
+
+loop:
+  max_cycle_minutes: 45
+  checkpoint_on_stop: true
+
+workers:
+  - id: "implementation-worker"
+    task: "bounded implementation of a scoped task or fix"
+    max_minutes: 30
+    max_tool_calls: 100
+    allowed_paths:
+      - ".context/"
+      - ".console/"
+      - "src/"
+      - "tests/"
+    forbidden_paths: []
+    allowed_subagents: 1
+    mutation_policy: "write_allowed"
