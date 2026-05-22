@@ -22,26 +22,11 @@ Do not edit `.console/.context` directly — it is regenerated at each launch.
 
 ## Cognition Lifecycle
 
-Uses [ContextLifecycle](https://github.com/ProtocolWarden/ContextLifecycle) for bounded, resumable agent sessions.
+This executor is a library consumer. **Cognition is hosted by the anchoring manifest** — this repo carries no `.context/` of its own. Per Phase 5 of `PlatformDeployment/docs/architecture/adr/0002-work-order-manifest-cognition.md`, every Claude Code session targeting this repo must first run `eval $(cl session start <manifest>)` (PlatformManifest or PrivateManifest depending on scope). All capsules, checkpoints, and handoffs land under the anchor's `.context/sessions/<CL_SESSION_ID>/` subtree.
 
-| Surface       | Purpose                                                      |
-|---------------|--------------------------------------------------------------|
-| `.console/`   | Operational truth — task, guidelines, backlog, log           |
-| `.context/`   | Durable cognition — capsules, checkpoints, handoffs, leases  |
-| `.claude/`    | Claude Code adapter — ContextGuard hooks                     |
+| Surface       | Purpose                                                                |
+|---------------|------------------------------------------------------------------------|
+| `.console/`   | Operational truth — task, guidelines, backlog, log                     |
+| `.claude/hooks/` | Thin shim that execs `cl hook <event>` (logic lives in CL package)  |
 
-**Session lifecycle:**
-
-```
-wake → read .context/checkpoints/<latest>.yaml
-     → read active capsule refs
-     → execute scoped work
-     → write updated checkpoint
-     → update .console/log.md
-     → terminate or compact
-```
-
-**On session start:** Check `.context/active/` for active capsules. Check `.context/checkpoints/` for the latest checkpoint.
-**On session end:** Write a LoopCheckpoint. Update any active capsule handoff notes.
-**Templates:** `.context/templates/`
-**Config:** `.context/config.yaml`
+Sessions without `CL_ANCHOR` set will fail closed at the first hook fire — no fallback, no silent pass-through. Install: set `CL_HOME=/path/to/ContextLifecycle` or `pipx install context-lifecycle`.
