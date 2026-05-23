@@ -55,3 +55,7 @@ Per PlatformDeployment/docs/architecture/adr/0002-work-order-manifest-cognition.
 - Confirmed zero CL imports in src/ (executor never coupled to CL Python API).
 
 Branch: feat/p5-revert-to-shim. Staged, not committed.
+
+## 2026-05-23 — Standardize pre-push hook (file only)
+
+- Updated `.hooks/pre-push` to the auto-discovering variant. NOT activating core.hooksPath yet: repo has pre-existing audit findings that would block pushes under the fail-closed guard; activate after that cleanup.
