@@ -1,5 +1,29 @@
 # Log
 
+## 2026-05-23 — Clear Custodian findings + add real unit tests
+
+Took the repo from 37 Custodian findings to 0 (clean) on branch
+`chore/custodian-clean-and-tests`:
+
+- **C11**: added `timeout=` (300s `_GIT_TIMEOUT_SECONDS` constant) to every
+  `subprocess.run` in `git_ops.py`. Behavior otherwise unchanged.
+- **C41 / C16**: `checkpoint.py` now writes JSON with `ensure_ascii=False` and
+  reads/writes with `encoding="utf-8"`; `config_loader.py` reads with
+  `encoding="utf-8"`.
+- **S4**: added a project-venv guard to `tests/conftest.py` (matches the OC/
+  Custodian pattern, CI-exempt).
+- **T2**: `test_delete_missing_is_noop` now asserts the file stays absent and
+  reads back as None.
+- **T1/T6/T7**: real unit tests under `tests/unit/` for `git_ops`, `agent_call`,
+  `worker`, `summarizer`, `advisor`, `quick_check` — mock subprocess/safe_run/
+  agent calls and exercise success, failure, timeout, and parsing branches.
+- **W5/W6/W7**: added `.env.example`, `.hooks/pre-commit` (log-gate), and the
+  `.console/*` + `CLAUDE.md` `.gitignore` policy; set `core.hooksPath .hooks`.
+- **R3/R4/DC4/M1**: rewrote README (What this repo is / is not / Quick start /
+  Architecture) and added a Keep-a-Changelog `CHANGELOG.md`.
+
+150 tests pass; Custodian reports 0 findings | clean.
+
 ## 2026-05-21 — Add closing fence to console-context block
 
 Added <!-- /console-context --> end marker so OperatorConsole only replaces its

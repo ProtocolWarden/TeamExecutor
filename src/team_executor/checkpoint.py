@@ -17,14 +17,14 @@ def write_checkpoint(working_dir: str, run_id: str, completed: list[StageResult]
     path = _checkpoint_path(working_dir, run_id)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = [_serialise_result(r) for r in completed]
-    path.write_text(json.dumps(payload, indent=2))
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def read_checkpoint(working_dir: str, run_id: str) -> list[StageResult] | None:
     path = _checkpoint_path(working_dir, run_id)
     if not path.exists():
         return None
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     return [_deserialise_result(item) for item in payload]
 
 

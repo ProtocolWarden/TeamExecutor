@@ -12,9 +12,17 @@ from team_executor.models import GoalStage
 
 logger = logging.getLogger(__name__)
 
+# Default timeout (seconds) for git subprocess invocations. Git operations
+# (worktree add/remove, commit, cherry-pick) are local and fast; a generous
+# ceiling guards against a hung git process without affecting normal behavior.
+_GIT_TIMEOUT_SECONDS = 300
+
 
 def _run(cmd: list[str], cwd: str) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=True)
+    return subprocess.run(
+        cmd, cwd=cwd, capture_output=True, text=True, check=True,
+        timeout=_GIT_TIMEOUT_SECONDS,
+    )
 
 
 def create_worktree(base_dir: str, stage_index: int) -> str:
@@ -31,14 +39,18 @@ def remove_worktree(base_dir: str, worktree_path: str) -> None:
         _run(["git", "worktree", "remove", "--force", worktree_path], cwd=base_dir)
     except subprocess.CalledProcessError:
         # Fallback: prune stale entries
-        subprocess.run(["git", "worktree", "prune"], cwd=base_dir, capture_output=True)
+        subprocess.run(
+            ["git", "worktree", "prune"], cwd=base_dir, capture_output=True,
+            timeout=_GIT_TIMEOUT_SECONDS,
+        )
     logger.debug("git_ops: worktree removed %s", worktree_path)
 
 
 def commit_worktree(worktree_path: str, stage: GoalStage) -> str | None:
     """Stage all changes in worktree and commit. Returns commit SHA or None if nothing to commit."""
     result = subprocess.run(
-        ["git", "status", "--porcelain"], cwd=worktree_path, capture_output=True, text=True
+        ["git", "status", "--porcelain"], cwd=worktree_path, capture_output=True, text=True,
+        timeout=_GIT_TIMEOUT_SECONDS,
     )
     if not result.stdout.strip():
         return None
@@ -64,7 +76,8 @@ def merge_worktree_into_base(base_dir: str, sha: str, stage: GoalStage) -> None:
 def commit_stage(working_dir: str, stage: GoalStage) -> bool:
     """Stage all changes and commit for a sequential stage. Returns True if committed."""
     status = subprocess.run(
-        ["git", "status", "--porcelain"], cwd=working_dir, capture_output=True, text=True
+        ["git", "status", "--porcelain"], cwd=working_dir, capture_output=True, text=True,
+        timeout=_GIT_TIMEOUT_SECONDS,
     )
     if not status.stdout.strip():
         return False

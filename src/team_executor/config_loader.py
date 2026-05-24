@@ -60,7 +60,7 @@ def load_team_config(team_name: str, working_directory: str = ".") -> TeamConfig
     ]
     for path in candidates:
         if path.exists():
-            raw = yaml.safe_load(path.read_text())
+            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
             return _parse_team_config(raw)
     searched = ", ".join(str(p) for p in candidates)
     raise FileNotFoundError(f"Team config '{team_name}' not found. Searched: {searched}")

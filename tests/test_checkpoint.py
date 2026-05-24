@@ -61,7 +61,15 @@ class TestCheckpoint:
         assert read_checkpoint(str(tmp_path), "run-del") is None
 
     def test_delete_missing_is_noop(self, tmp_path):
+        # Deleting a checkpoint that was never written must not raise and must
+        # leave no file behind / read back as absent.
+        from team_executor.checkpoint import _checkpoint_path
+
+        path = _checkpoint_path(str(tmp_path), "ghost-run")
+        assert not path.exists()
         delete_checkpoint(str(tmp_path), "ghost-run")  # should not raise
+        assert not path.exists()
+        assert read_checkpoint(str(tmp_path), "ghost-run") is None
 
     def test_multiple_runs_isolated(self, tmp_path):
         write_checkpoint(str(tmp_path), "run-a", [_result(0)])
