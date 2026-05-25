@@ -47,6 +47,37 @@ _VERIFIERS_YAML = textwrap.dedent("""\
     max_cycles_per_stage: 3
 """)
 
+_BACKEND_MODELS_YAML = textwrap.dedent("""\
+    team_name: backendmodels
+    coordinator:
+      model: claude-opus-4-7
+      effort: high
+      backend_models:
+        codex_cli: gpt-5.4
+      backend_efforts:
+        codex_cli: medium
+      system_prompt: "coord"
+    workers:
+      - name: w
+        model: claude-sonnet-4-6
+        effort: medium
+        backend_models:
+          codex_cli: gpt-5.4-mini
+        backend_efforts:
+          codex_cli: low
+        system_prompt: "work"
+    verifiers:
+      - kind: reviewer
+        name: reviewer
+        model: claude-sonnet-4-6
+        effort: medium
+        backend_models:
+          codex_cli: gpt-5.4-mini
+        backend_efforts:
+          codex_cli: low
+        system_prompt: "review"
+""")
+
 
 def _write_config(directory: Path, team_name: str, content: str) -> None:
     teams_dir = directory / ".team_executor" / "teams"
@@ -96,6 +127,7 @@ class TestLoadTeamConfig:
         config = load_team_config("budget", working_directory=str(tmp_path))
         assert config.team_name == "budget"
         assert "haiku" in config.coordinator.model
+        assert config.coordinator.backend_models["codex_cli"] == "gpt-5.4-mini"
 
     def test_missing_raises_file_not_found(self, tmp_path, monkeypatch):
         fake_home = tmp_path / "emptyhome"
@@ -151,3 +183,13 @@ class TestLoadTeamConfig:
         _write_config(tmp_path, "testteam", _LEGACY_YAML)
         config = load_team_config("testteam", working_directory=str(tmp_path))
         assert config.worker_backend == "claude_code"
+
+    def test_backend_specific_models_are_loaded(self, tmp_path):
+        _write_config(tmp_path, "backendmodels", _BACKEND_MODELS_YAML)
+        config = load_team_config("backendmodels", working_directory=str(tmp_path))
+        assert config.coordinator.backend_models["codex_cli"] == "gpt-5.4"
+        assert config.coordinator.backend_efforts["codex_cli"] == "medium"
+        assert config.workers[0].backend_models["codex_cli"] == "gpt-5.4-mini"
+        assert config.workers[0].backend_efforts["codex_cli"] == "low"
+        assert config.verifiers[0].role.backend_models["codex_cli"] == "gpt-5.4-mini"
+        assert config.verifiers[0].role.backend_efforts["codex_cli"] == "low"

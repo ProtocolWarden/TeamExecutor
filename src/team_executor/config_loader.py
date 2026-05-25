@@ -19,6 +19,9 @@ def _role_from_dict(data: dict, name_fallback: str) -> Role:
         max_turns=data.get("max_turns", 10),
         timeout_seconds=data.get("timeout_seconds", 3600),
         fallback_model=data.get("fallback_model"),
+        effort=data.get("effort"),
+        backend_models=dict(data.get("backend_models") or {}),
+        backend_efforts=dict(data.get("backend_efforts") or {}),
     )
 
 

@@ -26,13 +26,16 @@ def call_agent(
 
 
 def _claude_call(role: Role, prompt: str, working_dir: str) -> str:
+    effort = role.effort_for_backend("claude_code")
     cmd = [
         "claude",
-        "--model", role.model,
+        "--model", role.model_for_backend("claude_code"),
         "-p",
         "--output-format", "json",
-        prompt,
     ]
+    if effort:
+        cmd.extend(["--effort", effort])
+    cmd.append(prompt)
     try:
         result = safe_run(cmd, cwd=working_dir, timeout_seconds=role.timeout_seconds)
     except FileNotFoundError:
@@ -60,12 +63,15 @@ def _claude_call(role: Role, prompt: str, working_dir: str) -> str:
 
 
 def _codex_call(role: Role, prompt: str, working_dir: str) -> str:
+    effort = role.effort_for_backend("codex_cli")
     cmd = [
         "codex",
-        "--model", role.model,
+        "--model", role.model_for_backend("codex_cli"),
         "--approval-mode", "full-auto",
-        "-q", prompt,
     ]
+    if effort:
+        cmd.extend(["-c", f'model_reasoning_effort="{effort}"'])
+    cmd.extend(["-q", prompt])
     try:
         result = safe_run(cmd, cwd=working_dir, timeout_seconds=role.timeout_seconds)
     except FileNotFoundError:

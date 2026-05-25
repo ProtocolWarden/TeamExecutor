@@ -83,3 +83,13 @@ Branch: feat/p5-revert-to-shim. Staged, not committed.
 ## 2026-05-23 — Standardize pre-push hook (file only)
 
 - Updated `.hooks/pre-push` to the auto-discovering variant. NOT activating core.hooksPath yet: repo has pre-existing audit findings that would block pushes under the fail-closed guard; activate after that cleanup.
+
+## 2026-05-25 — Add backend-specific model and effort tiers
+
+- Added backend-aware role runtime fields: `backend_models`, `backend_efforts`, plus helper selectors on `Role`.
+- Claude subprocess calls now pass explicit `--effort`; Codex subprocess calls now pass `model_reasoning_effort`.
+- Built-in `budget` / `default` / `premium` team YAMLs now define both Claude and Codex model+effort tiers:
+  - budget = haiku/mini @ low
+  - default = sonnet/gpt-5.4 @ medium
+  - premium = opus/gpt-5.4 @ high
+- Added coverage for backend-specific config loading and command construction. Focused TeamExecutor test slice passed.

@@ -142,6 +142,7 @@ class TestRole:
         assert role.max_turns == 10
         assert role.timeout_seconds == 3600
         assert role.fallback_model is None
+        assert role.effort is None
 
     def test_custom_values(self):
         role = Role(
@@ -151,9 +152,16 @@ class TestRole:
             max_turns=20,
             timeout_seconds=7200,
             fallback_model="claude-sonnet-4-6",
+            effort="high",
+            backend_models={"codex_cli": "gpt-5.4"},
+            backend_efforts={"codex_cli": "medium"},
         )
         assert role.max_turns == 20
         assert role.fallback_model == "claude-sonnet-4-6"
+        assert role.model_for_backend("claude_code") == "claude-opus-4-7"
+        assert role.model_for_backend("codex_cli") == "gpt-5.4"
+        assert role.effort_for_backend("claude_code") == "high"
+        assert role.effort_for_backend("codex_cli") == "medium"
 
 
 class TestVerdictStatus:

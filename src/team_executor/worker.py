@@ -45,13 +45,16 @@ def run_worker(
 
 
 def _run_claude_code(role: Role, message: str, working_dir: str) -> tuple[bool, str]:
+    effort = role.effort_for_backend("claude_code")
     cmd = [
         "claude",
-        "--model", role.model,
+        "--model", role.model_for_backend("claude_code"),
         "-p",
         "--output-format", "json",
-        message,
     ]
+    if effort:
+        cmd.extend(["--effort", effort])
+    cmd.append(message)
     try:
         result = subprocess.run(
             cmd,
@@ -76,12 +79,15 @@ def _run_claude_code(role: Role, message: str, working_dir: str) -> tuple[bool, 
 
 
 def _run_codex(role: Role, message: str, working_dir: str) -> tuple[bool, str]:
+    effort = role.effort_for_backend("codex_cli")
     cmd = [
         "codex",
-        "--model", role.model,
+        "--model", role.model_for_backend("codex_cli"),
         "--approval-mode", "full-auto",
-        "-q", message,
     ]
+    if effort:
+        cmd.extend(["-c", f'model_reasoning_effort="{effort}"'])
+    cmd.extend(["-q", message])
     try:
         result = subprocess.run(
             cmd,

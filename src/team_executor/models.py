@@ -20,6 +20,15 @@ class Role:
     max_turns: int = 10
     timeout_seconds: int = 3600
     fallback_model: str | None = None
+    effort: str | None = None
+    backend_models: dict[str, str] = field(default_factory=dict)
+    backend_efforts: dict[str, str] = field(default_factory=dict)
+
+    def model_for_backend(self, backend: str) -> str:
+        return self.backend_models.get(backend, self.model)
+
+    def effort_for_backend(self, backend: str) -> str | None:
+        return self.backend_efforts.get(backend, self.effort)
 
 
 @dataclass

@@ -4,6 +4,11 @@ max_cycles_per_stage: 2
 coordinator:
   name: coordinator
   model: claude-haiku-4-5-20251001
+  effort: low
+  backend_models:
+    codex_cli: gpt-5.4-mini
+  backend_efforts:
+    codex_cli: low
   system_prompt: >-
     You are a coordinator. Decompose the goal into stages. Be concise.
     Respond only with the JSON you are asked for — no other output.
@@ -13,6 +18,11 @@ coordinator:
 workers:
   - name: implementer
     model: claude-haiku-4-5-20251001
+    effort: low
+    backend_models:
+      codex_cli: gpt-5.4-mini
+    backend_efforts:
+      codex_cli: low
     system_prompt: >-
       You are an implementation agent. Execute the stage you are given.
       Use your tools to read, edit, and test code. Commit nothing unless
@@ -24,6 +34,11 @@ verifiers:
   - kind: reviewer
     name: reviewer
     model: claude-haiku-4-5-20251001
+    effort: low
+    backend_models:
+      codex_cli: gpt-5.4-mini
+    backend_efforts:
+      codex_cli: low
     system_prompt: >-
       You are a reviewer. Check that the output satisfies acceptance criteria.
       Do not write code. Respond only with the JSON verdict you are asked for.

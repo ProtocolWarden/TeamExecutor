@@ -11,7 +11,7 @@ from team_executor.models import GoalStage, Role
 
 
 def _role() -> Role:
-    return Role(name="w", model="sonnet", system_prompt="sp", timeout_seconds=99)
+    return Role(name="w", model="sonnet", system_prompt="sp", timeout_seconds=99, effort="medium")
 
 
 def _stage() -> GoalStage:
@@ -27,6 +27,7 @@ def test_message_embeds_goal_as_reference_not_directive():
 
     def fake_run(cmd, *a, **kw):
         captured["msg"] = cmd[-1]
+        captured["cmd"] = cmd
         captured["timeout"] = kw.get("timeout")
         return _cp(stdout="done")
 
@@ -39,6 +40,8 @@ def test_message_embeds_goal_as_reference_not_directive():
     assert "OVERALL GOAL" in msg
     assert "compiles" in msg
     assert captured["timeout"] == 99
+    assert "--effort" in captured["cmd"]
+    assert "medium" in captured["cmd"]
 
 
 def test_rejection_reason_appended_to_message():
@@ -90,11 +93,22 @@ def test_codex_backend_invoked_and_returns_stdout():
         captured["cmd"] = cmd
         return _cp(stdout="codex out")
 
+    role = Role(
+        name="w",
+        model="claude-sonnet-4-6",
+        effort="medium",
+        backend_models={"codex_cli": "gpt-5.4-mini"},
+        backend_efforts={"codex_cli": "low"},
+        system_prompt="sp",
+        timeout_seconds=99,
+    )
     with patch("team_executor.worker.subprocess.run", side_effect=fake_run):
-        ok, out = worker.run_worker(_role(), _stage(), "g", "/wd", backend="codex_cli")
+        ok, out = worker.run_worker(role, _stage(), "g", "/wd", backend="codex_cli")
     assert ok is True
     assert out == "codex out"
     assert captured["cmd"][0] == "codex"
+    assert captured["cmd"][2] == "gpt-5.4-mini"
+    assert 'model_reasoning_effort="low"' in captured["cmd"]
 
 
 def test_codex_timeout_returns_failure():
