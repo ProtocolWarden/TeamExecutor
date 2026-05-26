@@ -20,7 +20,7 @@ from team_executor.models import (
 
 def _make_config() -> TeamConfig:
     return TeamConfig(
-        team_name="default",
+        team_name="standard",
         coordinator=Role(name="coordinator", model="claude-opus-4-7", system_prompt="coord"),
         workers=[Role(name="worker", model="claude-sonnet-4-6", system_prompt="work")],
         verifiers=[VerifierRole(kind="reviewer", role=Role(name="reviewer", model="claude-sonnet-4-6", system_prompt="verify"))],

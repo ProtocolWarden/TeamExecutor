@@ -18,7 +18,7 @@ def _utcnow() -> str:
 class TeamExecutorRunner:
     def __init__(
         self,
-        team_name: str = "default",
+        team_name: str = "standard",
         working_dir: str = ".",
         worker_backend: Literal["claude_code", "codex_cli"] = "claude_code",
     ) -> None:

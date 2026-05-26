@@ -104,12 +104,12 @@ class TestLoadTeamConfig:
         config = load_team_config("hometeam", working_directory=str(empty_project))
         assert config.team_name == "hometeam"
 
-    def test_builtin_default_team_loads(self, tmp_path, monkeypatch):
+    def test_builtin_standard_team_loads(self, tmp_path, monkeypatch):
         fake_home = tmp_path / "home"
         fake_home.mkdir()
         monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
-        config = load_team_config("default", working_directory=str(tmp_path))
-        assert config.team_name == "default"
+        config = load_team_config("standard", working_directory=str(tmp_path))
+        assert config.team_name == "standard"
         assert len(config.verifiers) >= 1
 
     def test_builtin_premium_team_loads(self, tmp_path, monkeypatch):
@@ -140,12 +140,12 @@ class TestLoadTeamConfig:
         fake_home = tmp_path / "home"
         fake_home.mkdir()
         monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
-        # Write a project-level "default" that overrides the built-in
-        override = _LEGACY_YAML.replace("testteam", "default").replace(
+        # Write a project-level "standard" that overrides the built-in
+        override = _LEGACY_YAML.replace("testteam", "standard").replace(
             "claude-opus-4-7-20251001", "claude-haiku-3-5"
         )
-        _write_config(tmp_path, "default", override)
-        config = load_team_config("default", working_directory=str(tmp_path))
+        _write_config(tmp_path, "standard", override)
+        config = load_team_config("standard", working_directory=str(tmp_path))
         assert config.coordinator.model == "claude-haiku-3-5"
 
     def test_legacy_verifier_key_parsed_as_reviewer(self, tmp_path):

@@ -1,4 +1,4 @@
-team_name: default
+team_name: standard
 max_cycles_per_stage: 3
 
 coordinator:

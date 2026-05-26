@@ -93,3 +93,10 @@ Branch: feat/p5-revert-to-shim. Staged, not committed.
   - default = sonnet/gpt-5.4 @ medium
   - premium = opus/gpt-5.4 @ high
 - Added coverage for backend-specific config loading and command construction. Focused TeamExecutor test slice passed.
+
+## 2026-05-26 — Standard tier hard cutover
+
+- Renamed the built-in middle team from `default` to `standard` and changed `TeamExecutorRunner` to default to `standard`.
+- Removed the built-in `default.yaml`; loader now requires `standard` for the middle tier with no compatibility alias.
+- Updated README and tests to use `standard`.
+- Verified with focused tests and full `pytest`.

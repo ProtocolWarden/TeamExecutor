@@ -39,7 +39,7 @@ re-framed as a new operative instruction.
 ```python
 from team_executor.executor import TeamExecutorRunner
 
-runner = TeamExecutorRunner(team_name="default", working_dir="/path/to/project")
+runner = TeamExecutorRunner(team_name="standard", working_dir="/path/to/project")
 result = runner.run("Implement feature X in the codebase")
 ```
 
