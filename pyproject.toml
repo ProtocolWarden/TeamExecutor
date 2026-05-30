@@ -21,7 +21,7 @@ dependencies = [
 dev = [
   "pytest>=8.0",
   "ruff>=0.5",
-  "custodian @ git+https://github.com/ProtocolWarden/Custodian.git@main",
+  "custodian @ git+https://github.com/ProtocolWarden/Custodian.git@c724dee7990ae4fe0c00d4e9a45ed459dff0fa1a",
 ]
 
 [tool.setuptools.packages.find]
