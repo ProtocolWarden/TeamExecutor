@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from unittest.mock import patch
 
-import pytest
 
 from team_executor.models import GoalStage, Role
 from team_executor.stage_planner import plan_stages

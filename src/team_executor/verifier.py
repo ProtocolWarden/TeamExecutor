@@ -6,7 +6,7 @@ import json
 from typing import Literal
 
 from team_executor.agent_call import call_agent
-from team_executor.models import CycleVerdict, GoalStage, QuickCheck, VerifierRole, VerdictStatus
+from team_executor.models import CycleVerdict, GoalStage, VerifierRole, VerdictStatus
 from team_executor.quick_check import run_quick_checks
 
 _VERIFY_PROMPT = """\

@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  audit:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

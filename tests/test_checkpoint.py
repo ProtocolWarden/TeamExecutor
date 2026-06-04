@@ -2,7 +2,6 @@
 # Copyright (C) 2026 ProtocolWarden
 from __future__ import annotations
 
-import pytest
 
 from team_executor.checkpoint import (
     delete_checkpoint,
