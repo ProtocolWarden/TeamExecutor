@@ -1,5 +1,16 @@
 # Log
 
+## 2026-06-04 — Console reconciliation (enforce-only)
+
+Reconciled `.console/` per the console-reconciliation spec. This repo was already
+clean and under budget, so this is enforce-only:
+
+- Confirmed no scrub-target leaks in tracked `.console/`/`docs` (git grep clean,
+  excluding detector-ID forms).
+- `cl reconcile check` reports GREEN (prune-ready); log.md well under the 400-line R1 budget.
+- Set `audit.reconcile_enforce: true` in `.custodian/config.yaml` so Custodian R1/R2
+  now enforce on this repo.
+
 ## 2026-05-23 — Clear Custodian findings + add real unit tests
 
 Took the repo from 37 Custodian findings to 0 (clean) on branch

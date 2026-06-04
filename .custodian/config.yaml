@@ -1,3 +1,6 @@
 repo_key: TeamExecutor
 src_root: src/team_executor
 tests_root: tests
+audit:
+  # This repo's .console is reconciled + clean (leak-free, log < 400), so enforce R1/R2.
+  reconcile_enforce: true
