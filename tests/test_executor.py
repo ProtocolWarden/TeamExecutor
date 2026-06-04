@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 
 from team_executor.executor import TeamExecutorRunner
 from team_executor.models import (

@@ -11,9 +11,8 @@ from __future__ import annotations
 import json
 import subprocess
 from types import SimpleNamespace
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import patch
 
-import pytest
 
 from team_executor.models import (
     CycleVerdict,

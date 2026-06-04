@@ -8,7 +8,6 @@ from team_executor.models import (
     CycleVerdict,
     GoalStage,
     Role,
-    StageResult,
     TeamConfig,
     TeamSession,
     VerifierRole,
