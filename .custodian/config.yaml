@@ -4,3 +4,11 @@ tests_root: tests
 audit:
   # This repo's .console is reconciled + clean (leak-free, log < 400), so enforce R1/R2.
   reconcile_enforce: true
+
+# ---------------------------------------------------------------------------
+# Privacy / boundary enforcement (Custodian B-class)
+# ---------------------------------------------------------------------------
+privacy:
+  require_boundary_artifact: true
+  # No baked-in artifact path: the pre-push hook / CI resolve and export
+  # REPOGRAPH_BOUNDARY_ARTIFACT_FILE by role. Absent env => B2 fails closed.
