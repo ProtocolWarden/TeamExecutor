@@ -22,7 +22,7 @@ Do not edit `.console/.context` directly — it is regenerated at each launch.
 
 ## Cognition Lifecycle
 
-This executor is a library consumer. **Cognition is hosted by the anchoring manifest** — this repo carries no `.context/` of its own. Per Phase 5 of `PlatformDeployment/docs/architecture/adr/0002-work-order-manifest-cognition.md`, every Claude Code session targeting this repo must first run `eval $(cl session start <manifest>)` (PlatformManifest or PrivateManifest depending on scope). All capsules, checkpoints, and handoffs land under the anchor's `.context/sessions/<CL_SESSION_ID>/` subtree.
+This executor is a library consumer. **Cognition is hosted by the anchoring manifest** — this repo carries no `.context/` of its own. Per Phase 5 of `PlatformDeployment/docs/architecture/adr/0002-work-order-manifest-cognition.md`, every Claude Code session targeting this repo must first run `eval $(cl session start <manifest>)` (PlatformManifest or your private-manifest repo depending on scope). All capsules, checkpoints, and handoffs land under the anchor's `.context/sessions/<CL_SESSION_ID>/` subtree.
 
 | Surface       | Purpose                                                                |
 |---------------|------------------------------------------------------------------------|
