@@ -48,10 +48,20 @@ def plan_stages(
 
     try:
         stages_data = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(
-            f"Stage planner received non-JSON from agent (session limit or error): {raw_text[:300]}"
-        ) from exc
+    except json.JSONDecodeError:
+        # Agent may include conversational preamble before the JSON array.
+        bracket_start = raw_text.find("[")
+        if bracket_start != -1:
+            try:
+                stages_data, _ = json.JSONDecoder().raw_decode(raw_text, bracket_start)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError(
+                    f"Stage planner received non-JSON from agent (session limit or error): {raw_text[:300]}"
+                ) from exc
+        else:
+            raise RuntimeError(
+                f"Stage planner received non-JSON from agent (session limit or error): {raw_text[:300]}"
+            )
     return [
         GoalStage(
             index=i,

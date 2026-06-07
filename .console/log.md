@@ -1,5 +1,12 @@
 # Log
 
+## 2026-06-07 — fix(stage_planner): tolerate preambled JSON from agent
+
+Agent responses sometimes include conversational text before the JSON array
+("Now I'll provide the decomposition:"). The stage planner raised RuntimeError
+on strict `json.loads()`. Fixed with `JSONDecoder.raw_decode()` fallback at the
+first `[` — handles both leading preamble and trailing text. 3 new tests; 154/154 pass.
+
 ## 2026-06-04 — Console reconciliation (enforce-only)
 
 Reconciled `.console/` per the console-reconciliation spec. This repo was already
