@@ -64,6 +64,30 @@ class TestPlanStages:
             stages = plan_stages("Goal", _role(), "/tmp")
         assert stages[0].acceptance_criteria == []
 
+    def test_parses_preambled_json(self):
+        # Agent sometimes outputs conversational text before the JSON array
+        json_part = json.dumps([{"description": "Do X", "acceptance_criteria": ["x done"], "parallel_group": None}])
+        payload = f"Now I'll respond with the stage decomposition:\n{json_part}"
+        with patch("team_executor.stage_planner.call_agent", return_value=payload):
+            stages = plan_stages("Goal", _role(), "/tmp")
+        assert len(stages) == 1
+        assert stages[0].description == "Do X"
+
+    def test_parses_preamble_with_trailing_text(self):
+        json_part = json.dumps([{"description": "Stage A", "acceptance_criteria": [], "parallel_group": None}])
+        payload = f"Here is the JSON:\n{json_part}\n\nLet me know if you need adjustments."
+        with patch("team_executor.stage_planner.call_agent", return_value=payload):
+            stages = plan_stages("Goal", _role(), "/tmp")
+        assert len(stages) == 1
+        assert stages[0].description == "Stage A"
+
+    def test_raises_on_no_json_array(self):
+        import pytest
+        payload = "I cannot provide a JSON response right now."
+        with patch("team_executor.stage_planner.call_agent", return_value=payload):
+            with pytest.raises(RuntimeError, match="non-JSON"):
+                plan_stages("Goal", _role(), "/tmp")
+
     def test_goal_text_included_in_prompt(self):
         payload = json.dumps([{"description": "A", "acceptance_criteria": [], "parallel_group": None}])
         captured_prompts = []
