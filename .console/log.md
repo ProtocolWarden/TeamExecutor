@@ -1,5 +1,11 @@
 # Log
 
+## 2026-06-15 — chore: cwd-safe ContextGuard hook command
+
+Hardened `.claude/settings.json` hook commands to
+`bash "${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/..."` so they resolve regardless of
+the shell cwd (relative path errored non-blockingly from a non-root cwd).
+Fleet-wide sweep; canonical CL adapter template hardened in a sibling PR.
 ## 2026-06-07 — fix(stage_planner): tolerate preambled JSON from agent
 
 Agent responses sometimes include conversational text before the JSON array
