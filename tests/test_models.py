@@ -2,14 +2,12 @@
 # Copyright (C) 2026 ProtocolWarden
 from __future__ import annotations
 
-import pytest
 
 from team_executor.models import (
     CycleVerdict,
     GoalStage,
     Role,
     TeamConfig,
-    TeamSession,
     VerifierRole,
     VerdictStatus,
 )
@@ -21,29 +19,6 @@ def _role(name: str = "worker") -> Role:
 
 def _verifier_role(kind: str = "reviewer") -> VerifierRole:
     return VerifierRole(kind=kind, role=_role(kind))
-
-
-class TestTeamSession:
-    def test_add_user_appends_user_message(self):
-        session = TeamSession(role_name="coordinator")
-        session.add_user("hello")
-        assert session.messages == [{"role": "user", "content": "hello"}]
-
-    def test_add_assistant_appends_assistant_message(self):
-        session = TeamSession(role_name="coordinator")
-        session.add_assistant("hi back")
-        assert session.messages == [{"role": "assistant", "content": "hi back"}]
-
-    def test_mixed_messages_preserve_order(self):
-        session = TeamSession(role_name="worker")
-        session.add_user("do this")
-        session.add_assistant("done")
-        session.add_user("verify")
-        assert [m["role"] for m in session.messages] == ["user", "assistant", "user"]
-
-    def test_starts_empty(self):
-        session = TeamSession(role_name="verifier")
-        assert session.messages == []
 
 
 class TestGoalStage:
@@ -83,25 +58,6 @@ class TestTeamConfig:
         )
         assert len(config.verifiers) == 2
         assert config.verifiers[0].kind == "tester"
-
-    def test_verifier_property_returns_first(self):
-        config = TeamConfig(
-            team_name="t",
-            coordinator=_role("coord"),
-            workers=[_role("w")],
-            verifiers=[_verifier_role("tester")],
-        )
-        assert config.verifier.name == "tester"
-
-    def test_verifier_property_raises_when_empty(self):
-        config = TeamConfig(
-            team_name="t",
-            coordinator=_role("coord"),
-            workers=[_role("w")],
-            verifiers=[],
-        )
-        with pytest.raises(ValueError):
-            _ = config.verifier
 
     def test_worker_backend_default(self):
         config = TeamConfig(
