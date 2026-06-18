@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Literal
+from typing import Literal
 
 
 class VerdictStatus(str, Enum):
@@ -57,13 +57,6 @@ class TeamConfig:
     adaptive_advisor: bool = False
     auto_commit: bool = False
 
-    @property
-    def verifier(self) -> Role:
-        """Backwards-compat: return the first verifier's role."""
-        if not self.verifiers:
-            raise ValueError("TeamConfig has no verifiers")
-        return self.verifiers[0].role
-
 
 @dataclass
 class GoalStage:
@@ -89,17 +82,3 @@ class StageResult:
     cycles: int
     verdicts: list[CycleVerdict]
     success: bool
-
-
-@dataclass
-class TeamSession:
-    """Per-role conversation state within a stage."""
-
-    role_name: str
-    messages: list[dict[str, Any]] = field(default_factory=list)
-
-    def add_user(self, content: str) -> None:
-        self.messages.append({"role": "user", "content": content})
-
-    def add_assistant(self, content: str) -> None:
-        self.messages.append({"role": "assistant", "content": content})

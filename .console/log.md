@@ -124,3 +124,16 @@ Branch: feat/p5-revert-to-shim. Staged, not committed.
 - Removed the built-in `default.yaml`; loader now requires `standard` for the middle tier with no compatibility alias.
 - Updated README and tests to use `standard`.
 - Verified with focused tests and full `pytest`.
+
+## 2026-06-18 — cleanup: delete TeamSession + TeamConfig.verifier shim
+
+Ecosystem incomplete-integration remediation (Phase 3 DELETE). Both from the
+initial Phase-2 scaffold (direct push c1b139c), never adopted by production:
+- TeamSession (per-role conversation state) — prod agent calls go through the
+  stateless call_agent(); no message-accumulation path exists. Deleted the class
+  + TestTeamSession + the now-unused typing.Any import.
+- TeamConfig.verifier (back-compat "first verifier" property) — superseded by the
+  verifiers list (config_loader/coordinator use verifiers); only test-referenced.
+  Deleted the property + its 2 tests + the now-unused pytest import.
+TeamExecutorRunner (the RxP entry, WIRED by OC's team_executor backend adapter)
+left untouched. 148 tests green; ruff + audit (B2 env only) + doctor clean.
