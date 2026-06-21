@@ -33,7 +33,10 @@ workers:
       Use your tools to read, edit, and test code. Commit nothing unless
       explicitly told to.
     max_turns: 30
-    timeout_seconds: 1800
+    # 60-min per-call ceiling: sonnet/high running the full test suite (~9k tests)
+    # within a single turn, plus reasoning + fixes, can approach the old 30-min
+    # cap; give it headroom so a thorough verify turn isn't killed mid-run.
+    timeout_seconds: 3600
 
 verifiers:
   - kind: reviewer
