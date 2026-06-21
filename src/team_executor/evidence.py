@@ -18,7 +18,7 @@ def aggregate_evidence(stage_results: list[StageResult]) -> dict:
     }
 
 
-def describe_failed_stages(stage_results: list[StageResult], *, max_reason: int = 200) -> str:
+def describe_failed_stages(stage_results: list[StageResult], *, max_reason: int = 600) -> str:
     """Diagnostic summary of WHY each failed stage failed.
 
     For every non-successful stage, emits ``stage <index> (<description>): <why>``
