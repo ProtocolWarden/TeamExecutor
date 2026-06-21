@@ -2,7 +2,7 @@
 # Copyright (C) 2026 ProtocolWarden
 from __future__ import annotations
 
-from team_executor.evidence import aggregate_evidence
+from team_executor.evidence import aggregate_evidence, describe_failed_stages
 from team_executor.models import CycleVerdict, GoalStage, StageResult, VerdictStatus
 
 
@@ -76,3 +76,45 @@ class TestAggregateEvidence:
         ev = aggregate_evidence(results)
         assert ev["stages_failed"] == 1
         assert ev["rejection_rounds"] == 3
+
+
+class TestDescribeFailedStages:
+    def test_empty_when_all_succeed(self):
+        results = [
+            StageResult(stage=_stage(0), output="ok", cycles=1, verdicts=[_accept_verdict()], success=True),
+        ]
+        assert describe_failed_stages(results) == ""
+
+    def test_surfaces_index_description_and_last_reason(self):
+        stage = GoalStage(index=3, description="Implement the alert", acceptance_criteria=[])
+        results = [
+            StageResult(stage=_stage(0), output="ok", cycles=1, verdicts=[_accept_verdict()], success=True),
+            StageResult(
+                stage=stage,
+                output="...",
+                cycles=2,
+                verdicts=[_reject_verdict(0), CycleVerdict(status=VerdictStatus.REJECT, reason="missing tests", round=1)],
+                success=False,
+            ),
+        ]
+        out = describe_failed_stages(results)
+        assert "stage 3" in out
+        assert "Implement the alert" in out
+        assert "missing tests" in out  # the LAST verdict's reason
+
+    def test_falls_back_to_output_when_no_verdicts(self):
+        results = [
+            StageResult(stage=_stage(1), output="boom: traceback here", cycles=1, verdicts=[], success=False),
+        ]
+        out = describe_failed_stages(results)
+        assert "stage 1" in out
+        assert "boom: traceback here" in out
+
+    def test_joins_multiple_failed_stages(self):
+        results = [
+            StageResult(stage=_stage(0), output="x", cycles=1, verdicts=[_reject_verdict()], success=False),
+            StageResult(stage=_stage(1), output="y", cycles=1, verdicts=[_reject_verdict()], success=False),
+        ]
+        out = describe_failed_stages(results)
+        assert out.count("stage ") == 2
+        assert ";" in out
