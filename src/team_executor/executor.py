@@ -8,7 +8,7 @@ from typing import Literal
 
 from team_executor.config_loader import load_team_config
 from team_executor.coordinator import TeamCoordinator
-from team_executor.evidence import aggregate_evidence
+from team_executor.evidence import aggregate_evidence, describe_failed_stages
 
 
 def _utcnow() -> str:
@@ -51,9 +51,13 @@ class TeamExecutorRunner:
             overall_success = all(r.success for r in stage_results)
             status = "succeeded" if overall_success else "failed"
             exit_code = 0 if overall_success else 1
-            error_summary = None if overall_success else (
-                f"{evidence['stages_failed']} of {evidence['stages_total']} stages failed"
-            )
+            error_summary = None
+            if not overall_success:
+                detail = describe_failed_stages(stage_results)
+                error_summary = (
+                    f"{evidence['stages_failed']} of {evidence['stages_total']} stages failed"
+                    + (f" — {detail}" if detail else "")
+                )
 
             return RuntimeResult(
                 invocation_id=run_id,
