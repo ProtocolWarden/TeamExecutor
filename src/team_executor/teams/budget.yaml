@@ -17,8 +17,13 @@ coordinator:
 
 workers:
   - name: implementer
-    model: claude-haiku-4-5-20251001
-    effort: low
+    # The implementer does the real work — reads/edits code, runs pytest/ruff,
+    # and must satisfy the stage acceptance criteria. haiku/low was too weak: it
+    # shortcut the test stage ("cannot run tests", cited a 'previous session')
+    # and the verifier rejected it. sonnet/high is the proven coding tier (other
+    # teams use it); coordinator + reviewer stay on haiku/low to keep this budget.
+    model: claude-sonnet-4-6
+    effort: high
     backend_models:
       codex_cli: gpt-5.4-mini
     backend_efforts:
